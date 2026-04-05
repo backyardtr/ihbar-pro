@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İhbar Süresi ve İş Arama İzni Hesaplama</title>
+    <meta name="description" content="Modern, hızlı ve güvenilir ihbar süresi ve iş arama izni hesaplama aracı. 4857 Sayılı İş Kanunu'na uygun.">
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Flatpickr (Advanced Date Picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        accent: '#6366f1',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Keyframes & Transitions */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+
+        body {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(200, 100%, 80%, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(240, 100%, 80%, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(200, 100%, 80%, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(240, 100%, 80%, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dark body {
+            background-color: #020617;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(210, 100%, 15%, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(260, 100%, 15%, 0.3) 0px, transparent 50%);
+        }
+
+        /* 
+           --- MODERN FLATPICKR PREMIUM DESIGN --- 
+           Minimalist, SaaS-style calendar theme
+        */
+        .flatpickr-calendar {
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.05) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0,0,0,0.02) !important;
+            border-radius: 2rem !important;
+            padding: 1.25rem !important;
+            font-family: 'Inter', sans-serif !important;
+            width: 310px !important;
+            max-width: 95vw !important;
+            box-sizing: border-box !important;
+            margin-top: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            
+            /* Hardware acceleration for smoother layers */
+            transform: translateZ(0); 
+            -webkit-font-smoothing: antialiased;
+            
+            /* Disable internal transitions that cause ghosting */
+            transition: none !important; 
+        }
+
+        /* Snappy Opening Animation */
+        .flatpickr-calendar.open {
+            animation: flatpickrFadeIn 0.2s ease-out forwards !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Immediate hide on close to prevent number ghosting */
+        .flatpickr-calendar:not(.open) {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transition: opacity 0s, visibility 0s !important;
+        }
+
+        /* Essential Fixes for Pazar/Sunday column visibility */
+        .flatpickr-innerContainer, .flatpickr-rContainer, .flatpickr-days, .dayContainer {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .dayContainer {
+            display: grid !important;
+            grid-template-columns: repeat(7, 1fr) !important;
+            width: 100% !important;
+            justify-items: center !important;
+        }
+
+        /* Sunday Highlight (Standard 1st day is Monday, so Sunday is 7th child) */
+        .flatpickr-day:nth-child(7n) {
+            color: #ef4444 !important; /* Muted Red */
+            opacity: 0.8 !important;
+        }
+        .dark .flatpickr-day:nth-child(7n) {
+            color: #f87171 !important;
+        }
+        
+        /* Ensure Sunday opacity doesn't break when it's of another month */
+        .flatpickr-day.prevMonthDay:nth-child(7n),
+        .flatpickr-day.nextMonthDay:nth-child(7n) {
+            opacity: 0.35 !important;
+        }
+
+        @media (max-width: 400px) {
+            .flatpickr-calendar {
+                width: 280px !important;
+                padding: 1rem !important;
+            }
+            .flatpickr-day {
+                max-width: 32px !important;
+                height: 32px !important;
+                line-height: 32px !important;
+                margin: 2px !important;
+                font-size: 0.8rem !important;
+            }
+        }
+
+        @keyframes flatpickrFadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .dark .flatpickr-calendar {
+            background: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.02) !important;
+        }
+
+        .flatpickr-months {
+            margin-bottom: 1rem !important;
+            position: relative;
+        }
+
+        .flatpickr-current-month {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            color: #0f172a !important;
+            padding: 0 !important;
+        }
+
+        .dark .flatpickr-current-month {
+            color: #f8fafc !important;
+        }
+
+        /* Dropdowns: Month & Year */
+        .flatpickr-monthDropdown-months, .year-dropdown {
+            background: #f8fafc !important;
+            border: none !important;
+            border-radius: 0.75rem !important;
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            color: #334155 !important;
+            cursor: pointer !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            outline: none !important;
+        }
+
+        .dark .flatpickr-monthDropdown-months, .dark .year-dropdown {
+            background: #1e293b !important;
+            color: #cbd5e1 !important;
+        }
+
+        .flatpickr-monthDropdown-months:hover, .year-dropdown:hover {
+            background: #f1f5f9 !important;
+            transform: translateY(-1px);
+        }
+
+        .dark .flatpickr-monthDropdown-months:hover, .dark .year-dropdown:hover {
+            background: #334155 !important;
+        }
+
+        /* Weekdays */
+        .flatpickr-weekdays {
+            height: 36px !important;
+            margin-bottom: 4px !important;
+        }
+
+        .flatpickr-weekday {
+            color: #94a3b8 !important;
+            font-weight: 700 !important;
+            font-size: 0.7rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+        }
+
+        /* Day Styling & Grid Hierarchy */
+        .flatpickr-day {
+            border-radius: 0.85rem !important;
+            margin: 2px !important; /* Slightly reduced margin for grid safety */
+            height: 38px !important;
+            line-height: 38px !important;
+            width: 100% !important; /* Let grid control width */
+            max-width: 38px !important;
+            border: 1px solid transparent !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            font-size: 0.875rem !important;
+        }
+
+        /* 1. Active Month Days - High Contrast */
+        .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay) {
+            color: #1e293b !important;
+            font-weight: 600 !important;
+        }
+        .dark .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay) {
+            color: #f8fafc !important;
+        }
+
+        /* 2. Previous/Next Month Days - Muted/Inactive */
+        .flatpickr-day.prevMonthDay, 
+        .flatpickr-day.nextMonthDay {
+            color: #cbd5e1 !important;
+            font-weight: 400 !important;
+            opacity: 0.6;
+        }
+        .dark .flatpickr-day.prevMonthDay, 
+        .dark .flatpickr-day.nextMonthDay {
+            color: #475569 !important;
+            opacity: 0.5;
+        }
+
+        /* 3. Hover Interactions */
+        .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay):hover {
+            background: #f1f5f9 !important;
+            color: #0ea5e9 !important;
+        }
+        .dark .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay):hover {
+            background: #1e293b !important;
+            color: #38bdf8 !important;
+        }
+
+        /* Subtler Hover for Inactive Days */
+        .flatpickr-day.prevMonthDay:hover, 
+        .flatpickr-day.nextMonthDay:hover {
+            background: rgba(0,0,0,0.03) !important;
+            opacity: 1;
+        }
+        .dark .flatpickr-day.prevMonthDay:hover, 
+        .dark .flatpickr-day.nextMonthDay:hover {
+            background: rgba(255,255,255,0.03) !important;
+            opacity: 1;
+        }
+
+        /* Today Marker */
+        .flatpickr-day.today {
+            border-color: #bae6fd !important;
+            color: #0ea5e9 !important;
+            background: #f0f9ff !important;
+            font-weight: 800 !important;
+        }
+        
+        .dark .flatpickr-day.today {
+            border-color: #0c4a6e !important;
+            background: #082f49 !important;
+            color: #38bdf8 !important;
+        }
+
+        /* Selected Day - Primary Override */
+        .flatpickr-day.selected, 
+        .flatpickr-day.selected:hover,
+        .flatpickr-day.selected:focus {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+            border: none !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+            box-shadow: 0 8px 15px -3px rgba(14, 165, 233, 0.4) !important;
+            font-weight: 800 !important;
+            transform: scale(1.05);
+        }
+
+        /* Navigation Arrows */
+        .flatpickr-prev-month, .flatpickr-next-month {
+            height: 32px !important;
+            width: 32px !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease !important;
+            top: 1.25rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #f8fafc !important;
+        }
+
+        .dark .flatpickr-prev-month, .dark .flatpickr-next-month {
+            background: #1e293b !important;
+        }
+
+        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        .dark .flatpickr-prev-month:hover, .dark .flatpickr-next-month:hover {
+            background: #334155 !important;
+        }
+
+        .flatpickr-prev-month svg, .flatpickr-next-month svg {
+            fill: #94a3b8 !important;
+            width: 12px !important;
+        }
+
+        /* Hidden helpers */
+        .numInputWrapper span { display: none !important; }
+
+
+        .btn-premium {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+        .btn-premium::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #6366f1, #0ea5e9);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        .btn-premium:hover::after {
+            opacity: 1;
+        }
+
+        .result-group {
+            transition: transform 0.3s ease;
+        }
+        .result-group:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="font-sans text-slate-800 dark:text-slate-200 transition-colors duration-500">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-5xl mx-auto px-6 py-8 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3">
+                <i data-lucide="scale" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-heading font-black tracking-tighter text-slate-900 dark:text-white leading-none">İhbarPro</h1>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Hesaplama Platformu</p>
+            </div>
+        </div>
+        
+        <button id="themeToggle" class="w-12 h-12 rounded-2xl flex items-center justify-center glass-card hover:border-primary-400 transition-all duration-300" aria-label="Temayı Değiştir">
+            <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden dark:block text-amber-400"></i>
+            <i data-lucide="moon" id="moonIcon" class="w-5 h-5 block dark:hidden text-slate-600"></i>
+        </button>
+    </header>
+
+    <!-- Main Application -->
+    <main class="flex-grow w-full max-w-5xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 py-4">
+        
+        <!-- Left Column: Input Form -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="glass-card rounded-[2.5rem] p-8 lg:p-10 shadow-2xl">
+                <div class="mb-10">
+                    <h2 class="text-3xl font-heading font-bold text-slate-900 dark:text-white mb-2 leading-tight">İhbar Süresi <br><span class="text-primary-500">Hesapla</span></h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">Verileri girerek 4857 Sayılı Kanun'a göre hesaplama yapın.</p>
+                </div>
+
+                <form id="calcForm" class="space-y-6">
+                    <!-- Personnel Selection -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Personel Sınıfı</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="personnelType" value="idari" checked class="peer sr-only">
+                                <div class="w-full py-4 text-center rounded-2xl border-2 border-transparent bg-slate-100 dark:bg-slate-800/50 peer-checked:border-primary-500 peer-checked:bg-primary-50 dark:peer-checked:bg-primary-900/20 transition-all">
+                                    <i data-lucide="user" class="w-5 h-5 mx-auto mb-1 text-slate-400 peer-checked:text-primary-500"></i>
+                                    <span class="text-sm font-bold">İdari</span>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="personnelType" value="tibbi" class="peer sr-only">
+                                <div class="w-full py-4 text-center rounded-2xl border-2 border-transparent bg-slate-100 dark:bg-slate-800/50 peer-checked:border-accent peer-checked:bg-accent/5 dark:peer-checked:bg-accent/10 transition-all">
+                                    <i data-lucide="stethoscope" class="w-5 h-5 mx-auto mb-1 text-slate-400 peer-checked:text-accent"></i>
+                                    <span class="text-sm font-bold">Tıbbi</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="space-y-2">
+                        <label for="startDate" class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">İşe Giriş Tarihi</label>
+                        <div class="relative group">
+                            <i data-lucide="calendar" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary-500 transition-colors z-10"></i>
+                            <input type="text" id="startDate" placeholder="GG.AA.YYYY" required class="w-full bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary-500 dark:focus:border-primary-500 transition-all font-medium input-glow">
+                        </div>
+                    </div>
+
+                    <!-- Notice Date -->
+                    <div class="space-y-2">
+                        <label for="noticeDate" class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Bildirim Tarihi</label>
+                        <div class="relative group">
+                            <i data-lucide="clock" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary-500 transition-colors z-10"></i>
+                            <input type="text" id="noticeDate" placeholder="GG.AA.YYYY" required class="w-full bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary-500 dark:focus:border-primary-500 transition-all font-medium input-glow">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full btn-premium text-white font-black py-5 rounded-2xl shadow-2xl shadow-primary-500/30 transition-all hover:-translate-y-1 flex items-center justify-center gap-3">
+                        <i data-lucide="calculator" class="w-6 h-6"></i>
+                        HESAPLA
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Results & Analytics -->
+        <div class="lg:col-span-7">
+            <!-- Initial Empty State -->
+            <div id="resultsEmpty" class="h-full flex flex-col items-center justify-center glass-card rounded-[2.5rem] p-10 border-dashed border-2 border-slate-200 dark:border-slate-800 opacity-60">
+                <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                    <i data-lucide="file-text" class="w-10 h-10 text-slate-400"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-500 dark:text-slate-400">Henüz Hesaplama Yapılmadı</h3>
+                <p class="text-center text-slate-400 max-w-xs mt-2 text-sm leading-relaxed">Bilgileri yan taraftaki formdan doldurarak süreci başlatabilirsiniz.</p>
+            </div>
+
+            <!-- Results Data (Hidden) -->
+            <div id="resultsContent" class="hidden h-full">
+                <div class="glass-card rounded-[2.5rem] p-8 lg:p-10 shadow-2xl h-full flex flex-col animate-fade-in">
+                    <div class="flex justify-between items-center mb-10">
+                        <div class="flex items-center gap-3">
+                            <span class="w-1.5 h-10 bg-primary-500 rounded-full"></span>
+                            <h3 class="text-2xl font-heading font-black text-slate-900 dark:text-white uppercase tracking-tight">Analiz Raporu</h3>
+                        </div>
+                        <div class="bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest">
+                            Kanun 4857
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-auto">
+                        <!-- Stat Card: Period -->
+                        <div class="result-group bg-slate-100/50 dark:bg-slate-900/30 p-6 rounded-3xl border border-white/40 dark:border-white/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm">
+                                    <i data-lucide="calendar-check" class="w-5 h-5 text-primary-500"></i>
+                                </div>
+                                <span class="text-xs font-black text-slate-400 uppercase tracking-widest">İhbar Süresi</span>
+                            </div>
+                            <p id="res_weeks" class="text-3xl font-heading font-black text-slate-800 dark:text-slate-100">-</p>
+                            <p id="res_days" class="text-xs font-bold text-slate-500 mt-1 uppercase tracking-tight tracking-wider">-</p>
+                        </div>
+
+                        <!-- Stat Card: Search Leave -->
+                        <div class="result-group bg-slate-100/50 dark:bg-slate-900/30 p-6 rounded-3xl border border-white/40 dark:border-white/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm">
+                                    <i data-lucide="search" class="w-5 h-5 text-accent"></i>
+                                </div>
+                                <span class="text-xs font-black text-slate-400 uppercase tracking-widest">İş Arama İzni</span>
+                            </div>
+                            <p id="res_leave_hours" class="text-3xl font-heading font-black text-slate-800 dark:text-slate-100">-</p>
+                            <p id="res_leave_days" class="text-xs font-bold text-slate-500 mt-1 uppercase tracking-tight tracking-wider">-</p>
+                        </div>
+
+                        <!-- Big Result: SGK Date -->
+                        <div class="md:col-span-2 bg-gradient-to-br from-primary-600 to-primary-800 p-8 rounded-[2rem] text-white shadow-xl shadow-primary-500/20 result-group">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[10px] font-black opacity-60 uppercase tracking-[0.3em]">Resmi Tarih</span>
+                                    <h4 class="text-lg font-bold mb-1">SGK Çıkış Tarihi</h4>
+                                    <p id="res_sgk_date" class="text-4xl md:text-5xl font-heading font-black">-</p>
+                                </div>
+                                <div class="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center">
+                                    <i data-lucide="check-circle" class="w-8 h-8"></i>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center gap-2 text-xs font-medium bg-black/10 w-fit px-4 py-2 rounded-full backdrop-blur-sm">
+                                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                                Bu tarih bildirim süresinin dolduğu son gündür.
+                            </div>
+                        </div>
+
+                        <!-- Big Result: Last Working Date -->
+                        <div class="md:col-span-2 bg-slate-900 dark:bg-slate-100 p-8 rounded-[2rem] text-white dark:text-slate-900 shadow-xl result-group">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[10px] font-black opacity-40 dark:opacity-60 uppercase tracking-[0.3em]">Operasyonel Tarih</span>
+                                    <h4 class="text-lg font-bold mb-1">Son Çalışma Tarihi</h4>
+                                    <p id="res_last_date" class="text-4xl md:text-5xl font-heading font-black">-</p>
+                                </div>
+                                <div class="w-14 h-14 bg-white/10 dark:bg-black/5 backdrop-blur rounded-2xl flex items-center justify-center">
+                                    <i data-lucide="briefcase" class="w-8 h-8"></i>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center gap-2 text-xs font-medium bg-white/5 dark:bg-black/5 w-fit px-4 py-2 rounded-full backdrop-blur-sm">
+                                <i data-lucide="star" class="w-3.5 h-3.5"></i>
+                                İş arama izinleri toplu kullanılmış halidir.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800 text-center opacity-60 flex flex-col gap-1">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Yasal Bilgilendirme</p>
+                        <p class="text-xs text-slate-400">Pazar günleri yasal olarak hesaplamalara dahil edilmemiştir.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-slate-200 dark:border-slate-900 mt-12 bg-white/30 dark:bg-black/20 backdrop-blur">
+        <div class="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 opacity-50">
+                    <i data-lucide="scale" class="w-4 h-4"></i>
+                    <span class="font-bold uppercase tracking-widest text-[10px]">İhbarPro v1.0</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">İş hukuku süreçlerinizi dijitalleştiren modern hesaplama kütüphanesi.</p>
+            </div>
+            <div class="md:col-start-3 flex md:justify-end items-center gap-6">
+                <a href="#" class="text-slate-400 hover:text-primary-500 transition-colors">Kullanım Şartları</a>
+                <a href="#" class="text-slate-400 hover:text-primary-500 transition-colors">Gizlilik</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core Logic -->
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // Theme Toggle Functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const root = document.documentElement;
+        
+        // Load preference or detect system
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            root.classList.toggle('dark');
+            localStorage.theme = root.classList.contains('dark') ? 'dark' : 'light';
+        });
+
+        // Form Handling
+        const form = document.getElementById('calcForm');
+        const emptyState = document.getElementById('resultsEmpty');
+        const resultContent = document.getElementById('resultsContent');
+
+        // Flatpickr Utility for Year Dropdown
+        function initYearDropdown(instance) {
+            const yearInput = instance.calendarContainer.querySelector(".numInput.cur-year");
+            if (!yearInput) return;
+            
+            // Create Year Select
+            const yearSelect = document.createElement("select");
+            yearSelect.className = "year-dropdown";
+            
+            const currentYear = new Date().getFullYear();
+            const startYear = currentYear - 80; // Go back 80 years
+            const endYear = currentYear + 20; // Go forward 20 years
+            
+            for (let y = endYear; y >= startYear; y--) {
+                const opt = document.createElement("option");
+                opt.value = y;
+                opt.text = y;
+                if (y === parseInt(yearInput.value)) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+            
+            yearSelect.addEventListener("change", (e) => {
+                instance.changeYear(parseInt(e.target.value));
+            });
+            
+            // Sync select value when month changes or arrows used
+            const updateSelect = () => {
+                yearSelect.value = instance.currentYear;
+            };
+            instance.config.onMonthChange.push(updateSelect);
+            instance.config.onYearChange.push(updateSelect);
+
+            // Replace input with select
+            yearInput.parentNode.insertBefore(yearSelect, yearInput);
+            yearInput.style.display = "none";
+        }
+
+        // Flatpickr Initialization
+        const fpOptions = {
+            locale: "tr",
+            dateFormat: "d.m.Y",
+            allowInput: true,
+            disableMobile: true,
+            monthSelectorType: "dropdown",
+            animate: false, // Disable clunky internal animations to fix ghosting
+            static: false,
+            position: "auto",
+            appendTo: document.body,
+            onReady: function(selectedDates, dateStr, instance) {
+                initYearDropdown(instance);
+            }
+        };
+
+        const fpStart = flatpickr("#startDate", fpOptions);
+        const fpNotice = flatpickr("#noticeDate", fpOptions);
+
+        /**
+         * Smart Date Parser for Clipboard
+         */
+        function parsePastedDate(text) {
+            const cleanText = text.trim().replace(/\s+/g, '');
+            
+            // Format: DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY
+            const dmyMatch = cleanText.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+            if (dmyMatch) {
+                return `${dmyMatch[1].padStart(2, '0')}.${dmyMatch[2].padStart(2, '0')}.${dmyMatch[3]}`;
+            }
+
+            // Format: DDMMYYYY (8 digits)
+            const digitsMatch = cleanText.match(/^(\d{2})(\d{2})(\d{4})$/);
+            if (digitsMatch) {
+                return `${digitsMatch[1]}.${digitsMatch[2]}.${digitsMatch[3]}`;
+            }
+
+            // Format: YYYY-MM-DD
+            const ymdMatch = cleanText.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
+            if (ymdMatch) {
+                return `${ymdMatch[3].padStart(2, '0')}.${ymdMatch[2].padStart(2, '0')}.${ymdMatch[1]}`;
+            }
+            return null;
+        }
+
+        // Attach Smart Paste Listeners
+        [ {el: document.getElementById('startDate'), instance: fpStart}, 
+          {el: document.getElementById('noticeDate'), instance: fpNotice} ].forEach(item => {
+            item.el.addEventListener('paste', (e) => {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const parsed = parsePastedDate(text);
+                if (parsed) {
+                    e.preventDefault();
+                    item.instance.setDate(parsed, true, "d.m.Y");
+                }
+            });
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const pType = formData.get('personnelType');
+            
+            // Get dates from Flatpickr instances
+            const startDate = fpStart.selectedDates[0];
+            const noticeDate = fpNotice.selectedDates[0];
+
+            if (!startDate || !noticeDate) {
+                alert("Lütfen geçerli tarihler seçiniz.");
+                return;
+            }
+
+
+            // 1. Calculate Kiddem (Months)
+            const diffYears = noticeDate.getFullYear() - startDate.getFullYear();
+            const diffMonths = (diffYears * 12) + (noticeDate.getMonth() - startDate.getMonth());
+            const totalMonths = (noticeDate.getDate() < startDate.getDate()) ? diffMonths - 1 : diffMonths;
+
+            // 2. Determine Notice Rules (4857 Law)
+            let weeks = 2;
+            if (totalMonths >= 6 && totalMonths < 18) weeks = 4;
+            else if (totalMonths >= 18 && totalMonths < 36) weeks = 6;
+            else if (totalMonths >= 36) weeks = 8;
+
+            const workDays = weeks * 6; // Law defines as 1 week = 6 business days
+
+            // 3. Calculation: SGK Exit Date
+            // From notice date, add 'workDays' calendar days, but skip Sundays.
+            const sgkExitDate = jumpWorkDays(noticeDate, workDays, 'add');
+
+            // 4. Job Search Leave
+            const searchHours = workDays * 2;
+            const divisor = (pType === 'idari') ? 7.5 : 12;
+            const fullDaysLeave = Math.ceil(searchHours / divisor);
+
+            // 5. Calculation: Last Working Date
+            // From SGK Exit Date, go BACK 'fullDaysLeave' days, skipping Sundays.
+            const lastWorkDate = jumpWorkDays(sgkExitDate, fullDaysLeave, 'sub');
+
+            // --- UI Updates ---
+            document.getElementById('res_weeks').textContent = `${weeks} Hafta`;
+            document.getElementById('res_days').textContent = `${workDays} İş Günü`;
+            document.getElementById('res_leave_hours').textContent = `${searchHours} Saat`;
+            document.getElementById('res_leave_days').textContent = `${fullDaysLeave} Tam Gün İzin`;
+            document.getElementById('res_sgk_date').textContent = formatDateTR(sgkExitDate);
+            document.getElementById('res_last_date').textContent = formatDateTR(lastWorkDate);
+
+            // Switch Visibility
+            emptyState.classList.add('hidden');
+            resultContent.classList.remove('hidden');
+            
+            // Scroll for mobile
+            if (window.innerWidth < 1024) {
+                resultContent.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        /**
+         * Date Jumper Engine
+         * Handles skipping Sundays dynamically
+         */
+        function jumpWorkDays(baseDate, amount, direction) {
+            let current = new Date(baseDate);
+            let count = 0;
+            
+            while (count < amount) {
+                current.setDate(current.getDate() + (direction === 'add' ? 1 : -1));
+                if (current.getDay() !== 0) { // If not Sunday (0)
+                    count++;
+                }
+            }
+            return current;
+        }
+
+        /**
+         * Localized Date Formatter
+         */
+        function formatDateTR(date) {
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            // Using toLocaleDateString for reliable format but manual fallback for consistency
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}.${month}.${year}`;
+        }
+    </script>
+</body>
+</html>
