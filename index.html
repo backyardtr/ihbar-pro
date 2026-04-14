@@ -400,6 +400,58 @@
         .result-group:hover {
             transform: scale(1.02);
         }
+
+        /* Holiday Marking in Calendar */
+        .flatpickr-day.holiday {
+            background: #fff1f2 !important;
+            color: #e11d48 !important;
+            border: 1px dashed #fda4af !important;
+        }
+
+        .dark .flatpickr-day.holiday {
+            background: #4c0519 !important;
+            color: #fb7185 !important;
+            border: 1px dashed #9f1239 !important;
+        }
+
+        .flatpickr-day.holiday.selected {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+
+        /* Arife (Half Holiday) Styling */
+        .flatpickr-day.arife {
+            background: #fffbeb !important;
+            color: #d97706 !important;
+            border: 1px dashed #fcd34d !important;
+        }
+
+        .dark .flatpickr-day.arife {
+            background: #451a03 !important;
+            color: #fbbf24 !important;
+            border: 1px dashed #92400e !important;
+        }
+
+        /* Loading State Styling */
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="font-sans text-slate-800 dark:text-slate-200 transition-colors duration-500">
@@ -437,19 +489,26 @@
                     <!-- Personnel Selection -->
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Personel Sınıfı</label>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-3 gap-2">
                             <label class="relative cursor-pointer group">
                                 <input type="radio" name="personnelType" value="idari" checked class="peer sr-only">
                                 <div class="w-full py-4 text-center rounded-2xl border-2 border-transparent bg-slate-100 dark:bg-slate-800/50 peer-checked:border-primary-500 peer-checked:bg-primary-50 dark:peer-checked:bg-primary-900/20 transition-all">
                                     <i data-lucide="user" class="w-5 h-5 mx-auto mb-1 text-slate-400 peer-checked:text-primary-500"></i>
-                                    <span class="text-sm font-bold">İdari</span>
+                                    <span class="text-[10px] md:text-sm font-bold">İdari</span>
                                 </div>
                             </label>
                             <label class="relative cursor-pointer group">
                                 <input type="radio" name="personnelType" value="tibbi" class="peer sr-only">
                                 <div class="w-full py-4 text-center rounded-2xl border-2 border-transparent bg-slate-100 dark:bg-slate-800/50 peer-checked:border-accent peer-checked:bg-accent/5 dark:peer-checked:bg-accent/10 transition-all">
                                     <i data-lucide="stethoscope" class="w-5 h-5 mx-auto mb-1 text-slate-400 peer-checked:text-accent"></i>
-                                    <span class="text-sm font-bold">Tıbbi</span>
+                                    <span class="text-[10px] md:text-sm font-bold">Tıbbi</span>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="personnelType" value="sua" class="peer sr-only">
+                                <div class="w-full py-4 text-center rounded-2xl border-2 border-transparent bg-slate-100 dark:bg-slate-800/50 peer-checked:border-rose-500 peer-checked:bg-rose-50 dark:peer-checked:bg-rose-900/20 transition-all">
+                                    <i data-lucide="radiation" class="w-5 h-5 mx-auto mb-1 text-slate-400 peer-checked:text-rose-500"></i>
+                                    <span class="text-[10px] md:text-sm font-bold">Şua</span>
                                 </div>
                             </label>
                         </div>
@@ -569,7 +628,7 @@
 
                     <div class="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800 text-center opacity-60 flex flex-col gap-1">
                         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Yasal Bilgilendirme</p>
-                        <p class="text-xs text-slate-400">Pazar günleri yasal olarak hesaplamalara dahil edilmemiştir.</p>
+                        <p id="calculationNote" class="text-xs text-slate-400">Pazar günleri, resmi tatiller ve dini bayramlar yasal olarak hesaplamalara dahil edilmemiştir. Arife günleri yarım iş günü sayılmış ve izin süresi 1 saat olarak hesaplanmıştır.</p>
                     </div>
                 </div>
             </div>
@@ -602,7 +661,6 @@
         const themeToggle = document.getElementById('themeToggle');
         const root = document.documentElement;
         
-        // Load preference or detect system
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             root.classList.add('dark');
         } else {
@@ -614,99 +672,132 @@
             localStorage.theme = root.classList.contains('dark') ? 'dark' : 'light';
         });
 
-        // Form Handling
+        // Form & UI Elements
         const form = document.getElementById('calcForm');
         const emptyState = document.getElementById('resultsEmpty');
         const resultContent = document.getElementById('resultsContent');
 
-        // Flatpickr Utility for Year Dropdown
+        // --- Static Holiday & Arife Management (2024-2030) ---
+        const TURKISH_HOLIDAYS = {
+            fixed: ["01-01", "04-23", "05-01", "05-19", "07-15", "08-30", "10-29"],
+            // Religious holidays (Full)
+            religious: [
+                // 2024
+                "2024-04-10", "2024-04-11", "2024-04-12", "2024-06-16", "2024-06-17", "2024-06-18", "2024-06-19",
+                // 2025
+                "2025-03-30", "2025-03-31", "2025-04-01", "2025-06-06", "2025-06-07", "2025-06-08", "2025-06-09",
+                // 2026
+                "2026-03-20", "2026-03-21", "2026-03-22", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30",
+                // 2027
+                "2027-03-09", "2027-03-10", "2027-03-11", "2027-05-16", "2027-05-17", "2027-05-18", "2027-05-19",
+                // 2028
+                "2028-02-26", "2028-02-27", "2028-02-28", "2028-05-04", "2028-05-05", "2028-05-06", "2028-05-07",
+                // 2029
+                "2029-02-15", "2029-02-16", "2029-02-17", "2029-04-24", "2029-04-25", "2029-04-26", "2029-04-27",
+                // 2030
+                "2030-02-04", "2030-02-05", "2030-02-06", "2030-04-13", "2030-04-14", "2030-04-15", "2030-04-16"
+            ]
+        };
+
+        const TURKISH_ARIFES = [
+            "2024-04-09", "2024-06-15", "2025-03-29", "2025-06-05", 
+            "2026-03-19", "2026-05-26", "2027-03-08", "2027-05-15",
+            "2028-02-25", "2028-05-03", "2029-02-14", "2029-04-23",
+            "2030-02-03", "2030-04-12"
+        ];
+
+        const holidaySet = new Set([...TURKISH_HOLIDAYS.religious]);
+        const arifeSet = new Set(TURKISH_ARIFES);
+
+        function getHolidayType(date) {
+            if (date.getDay() === 0) return 'full'; // Sunday
+            
+            const mmdd = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const yyyymmdd = `${date.getFullYear()}-${mmdd}`;
+            
+            if (TURKISH_HOLIDAYS.fixed.includes(mmdd)) return 'full';
+            if (holidaySet.has(yyyymmdd)) return 'full';
+            if (arifeSet.has(yyyymmdd)) return 'arife';
+            
+            return 'none';
+        }
+
+        // --- Core Functions ---
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        function jumpWorkDays(baseDate, amount, direction) {
+            let current = new Date(baseDate);
+            let count = 0;
+            
+            while (count < amount) {
+                current.setDate(current.getDate() + (direction === 'add' ? 1 : -1));
+                const type = getHolidayType(current);
+                if (type !== 'full') {
+                    // Arife counts as a day in the notification period but handles hours specially elsewhere
+                    count++;
+                }
+            }
+            return current;
+        }
+
+        // --- Flatpickr Helpers ---
         function initYearDropdown(instance) {
             const yearInput = instance.calendarContainer.querySelector(".numInput.cur-year");
             if (!yearInput) return;
             
-            // Create Year Select
             const yearSelect = document.createElement("select");
             yearSelect.className = "year-dropdown";
             
             const currentYear = new Date().getFullYear();
-            const startYear = currentYear - 80; // Go back 80 years
-            const endYear = currentYear + 20; // Go forward 20 years
-            
-            for (let y = endYear; y >= startYear; y--) {
+            for (let y = currentYear + 10; y >= currentYear - 50; y--) {
                 const opt = document.createElement("option");
-                opt.value = y;
-                opt.text = y;
+                opt.value = y; opt.text = y;
                 if (y === parseInt(yearInput.value)) opt.selected = true;
                 yearSelect.appendChild(opt);
             }
             
-            yearSelect.addEventListener("change", (e) => {
-                instance.changeYear(parseInt(e.target.value));
-            });
-            
-            // Sync select value when month changes or arrows used
-            const updateSelect = () => {
-                yearSelect.value = instance.currentYear;
-            };
+            yearSelect.addEventListener("change", (e) => instance.changeYear(parseInt(e.target.value)));
+            const updateSelect = () => { yearSelect.value = instance.currentYear; };
             instance.config.onMonthChange.push(updateSelect);
             instance.config.onYearChange.push(updateSelect);
 
-            // Replace input with select
             yearInput.parentNode.insertBefore(yearSelect, yearInput);
             yearInput.style.display = "none";
         }
 
-        // Flatpickr Initialization
         const fpOptions = {
             locale: "tr",
             dateFormat: "d.m.Y",
             allowInput: true,
             disableMobile: true,
             monthSelectorType: "dropdown",
-            animate: false, // Disable clunky internal animations to fix ghosting
-            static: false,
-            position: "auto",
-            appendTo: document.body,
-            onReady: function(selectedDates, dateStr, instance) {
-                initYearDropdown(instance);
+            animate: false,
+            onReady: (selectedDates, dateStr, instance) => initYearDropdown(instance),
+            onDayCreate: (dObj, dStr, fp, dayElem) => {
+                const date = dayElem.dateObj;
+                const type = getHolidayType(date);
+                if (type === 'full') {
+                    dayElem.classList.add('holiday');
+                    dayElem.title = "Resmi Tatil";
+                } else if (type === 'arife') {
+                    dayElem.classList.add('arife');
+                    dayElem.title = "Arife (Yarım Gün)";
+                }
             }
         };
 
-        const fpStart = flatpickr("#startDate", fpOptions);
-        const fpNotice = flatpickr("#noticeDate", fpOptions);
+        window.fpStart = flatpickr("#startDate", fpOptions);
+        window.fpNotice = flatpickr("#noticeDate", fpOptions);
 
-        /**
-         * Smart Date Parser for Clipboard
-         */
-        function parsePastedDate(text) {
-            const cleanText = text.trim().replace(/\s+/g, '');
-            
-            // Format: DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY
-            const dmyMatch = cleanText.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
-            if (dmyMatch) {
-                return `${dmyMatch[1].padStart(2, '0')}.${dmyMatch[2].padStart(2, '0')}.${dmyMatch[3]}`;
-            }
-
-            // Format: DDMMYYYY (8 digits)
-            const digitsMatch = cleanText.match(/^(\d{2})(\d{2})(\d{4})$/);
-            if (digitsMatch) {
-                return `${digitsMatch[1]}.${digitsMatch[2]}.${digitsMatch[3]}`;
-            }
-
-            // Format: YYYY-MM-DD
-            const ymdMatch = cleanText.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
-            if (ymdMatch) {
-                return `${ymdMatch[3].padStart(2, '0')}.${ymdMatch[2].padStart(2, '0')}.${ymdMatch[1]}`;
-            }
-            return null;
-        }
-
-        // Attach Smart Paste Listeners
+        // Smart Paste
         [ {el: document.getElementById('startDate'), instance: fpStart}, 
           {el: document.getElementById('noticeDate'), instance: fpNotice} ].forEach(item => {
             item.el.addEventListener('paste', (e) => {
-                const text = (e.clipboardData || window.clipboardData).getData('text');
-                const parsed = parsePastedDate(text);
+                const text = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/\s+/g, '');
+                let parsed = null;
+                const dmy = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+                if (dmy) parsed = `${dmy[1].padStart(2,'0')}.${dmy[2].padStart(2,'0')}.${dmy[3]}`;
+                
                 if (parsed) {
                     e.preventDefault();
                     item.instance.setDate(parsed, true, "d.m.Y");
@@ -714,23 +805,15 @@
             });
         });
 
+        // Form Submit
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            const formData = new FormData(form);
-            const pType = formData.get('personnelType');
-            
-            // Get dates from Flatpickr instances
+
             const startDate = fpStart.selectedDates[0];
             const noticeDate = fpNotice.selectedDates[0];
+            if (!startDate || !noticeDate) return alert("Lütfen tarihleri seçin.");
 
-            if (!startDate || !noticeDate) {
-                alert("Lütfen geçerli tarihler seçiniz.");
-                return;
-            }
-
-
-            // 1. Calculate Kiddem (Months)
+            // 1. Calculate Seniority (Kıdem)
             const diffYears = noticeDate.getFullYear() - startDate.getFullYear();
             const diffMonths = (diffYears * 12) + (noticeDate.getMonth() - startDate.getMonth());
             const totalMonths = (noticeDate.getDate() < startDate.getDate()) ? diffMonths - 1 : diffMonths;
@@ -741,67 +824,57 @@
             else if (totalMonths >= 18 && totalMonths < 36) weeks = 6;
             else if (totalMonths >= 36) weeks = 8;
 
-            const workDays = weeks * 6; // Law defines as 1 week = 6 business days
+            // --- NEW LOGIC START ---
 
-            // 3. Calculation: SGK Exit Date
-            // From notice date, add 'workDays' calendar days, but skip Sundays.
-            const sgkExitDate = jumpWorkDays(noticeDate, workDays, 'add');
+            // 3. SGK Exit Date: DIRECT CALENDAR JUMP (Wait-free / Calendar Weeks)
+            // No skipping holidays or Sundays for the SGK exit date calculation.
+            const sgkExitDate = new Date(noticeDate);
+            sgkExitDate.setDate(sgkExitDate.getDate() + (weeks * 7));
 
-            // 4. Job Search Leave
-            const searchHours = workDays * 2;
-            const divisor = (pType === 'idari') ? 7.5 : 12;
-            const fullDaysLeave = Math.ceil(searchHours / divisor);
+            // 4. Job Search Leave Hours Calculation (Business Day Based)
+            // Count search hours between Notice Date and SGK Exit Date
+            let totalSearchHours = 0;
+            let tempDateForHours = new Date(noticeDate);
+            
+            // Loop from Notice Date + 1 day up to SGK Exit Date
+            while (tempDateForHours < sgkExitDate) {
+                tempDateForHours.setDate(tempDateForHours.getDate() + 1);
+                const type = getHolidayType(tempDateForHours);
+                
+                if (type === 'none') {
+                    totalSearchHours += 2; // Normal Business Day
+                } else if (type === 'arife') {
+                    totalSearchHours += 1; // Arife (Half Working Day)
+                }
+                // 'full' holidays and Sundays add 0 hours
+            }
 
-            // 5. Calculation: Last Working Date
-            // From SGK Exit Date, go BACK 'fullDaysLeave' days, skipping Sundays.
-            const lastWorkDate = jumpWorkDays(sgkExitDate, fullDaysLeave, 'sub');
+            const pType = new FormData(form).get('personnelType');
+            let divisor = 7.5;
+            if (pType === 'tibbi') divisor = 12;
+            else if (pType === 'sua') divisor = 5.5;
 
-            // --- UI Updates ---
+            const leaveDaysToSubtract = Math.ceil(totalSearchHours / divisor);
+
+            // 5. Last Working Date: BACKWARDS BUSINESS JUMP
+            // Skip Sundays and holidays while going back from SGK Exit Date.
+            const lastWorkDate = jumpWorkDays(sgkExitDate, leaveDaysToSubtract, 'sub');
+
+            // --- NEW LOGIC END ---
+
+            const formatDate = (d) => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+            
             document.getElementById('res_weeks').textContent = `${weeks} Hafta`;
-            document.getElementById('res_days').textContent = `${workDays} İş Günü`;
-            document.getElementById('res_leave_hours').textContent = `${searchHours} Saat`;
-            document.getElementById('res_leave_days').textContent = `${fullDaysLeave} Tam Gün İzin`;
-            document.getElementById('res_sgk_date').textContent = formatDateTR(sgkExitDate);
-            document.getElementById('res_last_date').textContent = formatDateTR(lastWorkDate);
+            document.getElementById('res_days').textContent = `${weeks * 7} Takvim Günü`; // Display as calendar days
+            document.getElementById('res_leave_hours').textContent = `${totalSearchHours} Saat`;
+            document.getElementById('res_leave_days').textContent = `${leaveDaysToSubtract} Gün İzin`;
+            document.getElementById('res_sgk_date').textContent = formatDate(sgkExitDate);
+            document.getElementById('res_last_date').textContent = formatDate(lastWorkDate);
 
-            // Switch Visibility
             emptyState.classList.add('hidden');
             resultContent.classList.remove('hidden');
-            
-            // Scroll for mobile
-            if (window.innerWidth < 1024) {
-                resultContent.scrollIntoView({ behavior: 'smooth' });
-            }
+            if (window.innerWidth < 1024) resultContent.scrollIntoView({ behavior: 'smooth' });
         });
-
-        /**
-         * Date Jumper Engine
-         * Handles skipping Sundays dynamically
-         */
-        function jumpWorkDays(baseDate, amount, direction) {
-            let current = new Date(baseDate);
-            let count = 0;
-            
-            while (count < amount) {
-                current.setDate(current.getDate() + (direction === 'add' ? 1 : -1));
-                if (current.getDay() !== 0) { // If not Sunday (0)
-                    count++;
-                }
-            }
-            return current;
-        }
-
-        /**
-         * Localized Date Formatter
-         */
-        function formatDateTR(date) {
-            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-            // Using toLocaleDateString for reliable format but manual fallback for consistency
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}.${month}.${year}`;
-        }
     </script>
 </body>
 </html>
